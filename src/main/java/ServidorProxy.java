@@ -36,8 +36,8 @@ public class ServidorProxy {
         this.puerto = puerto;
         socketServidor = new ServerSocket(this.puerto);
         socketCliente = socketServidor.accept();
-        virtuales = new HashMap<>(); //TODO inicializar virtuales con el valor que manda el ManejoArchivos
-        virtuales.put("ed.ruiz", new Host("javeriana.edu.co", ""));
+        ManejoArchivos manager = new ManejoArchivos();
+        virtuales = manager.leerTablaHV();
     }
 
     public static void main(String[] args) {
