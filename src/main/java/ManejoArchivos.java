@@ -10,6 +10,7 @@ public class ManejoArchivos {
 
     public ManejoArchivos()
     {
+
     }
 
     public String getPathArchivoHV() {
@@ -20,7 +21,7 @@ public class ManejoArchivos {
         this.pathArchivoHV = pathArchivoHV;
     }
 
-    public Map<String, Host> leerTablaHV()
+    public HashMap<String, Host> leerTablaHV()
     {
         HashMap<String,Host> mapHV = new HashMap<>();
         File tablaHV = new File(pathArchivoHV);
@@ -34,8 +35,11 @@ public class ManejoArchivos {
                 String linea;
                 while((linea = br.readLine())!=null)
                 {
-                    String[] info = linea.split(",");
-                    mapHV.put(info[0], new Host(info[1], info[2]));
+                    if(linea != "")
+                    {
+                        String[] info = linea.split(",");
+                        mapHV.put(info[0], new Host(info[1], info[2]));
+                    }
                 }
 
             }
