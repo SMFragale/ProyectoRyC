@@ -1,9 +1,7 @@
-import java.io.BufferedReader;
-import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.PrintWriter;
+import java.io.*;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.HashMap;
 import java.util.Map;
 
 /**
@@ -36,14 +34,10 @@ public class ServidorProxy {
 
     public ServidorProxy(int puerto) throws IOException {
         this.puerto = puerto;
-        socketServidor = new ServerSocket(puerto);
+        socketServidor = new ServerSocket(this.puerto);
         socketCliente = socketServidor.accept();
-        PrintWriter salida = new PrintWriter(socketCliente.getOutputStream(), true);
-        BufferedReader entrada = new BufferedReader(new InputStreamReader(socketCliente.getInputStream()));
-        String s;
-        while((s = entrada.readLine()) != null) {
-            System.out.println(s);
-        }
+        ManejoArchivos manager = new ManejoArchivos();
+        virtuales = manager.leerTablaHV();
     }
 
     public static void main(String[] args) {
@@ -58,13 +52,64 @@ public class ServidorProxy {
     *   por ejemplo si la solicitud corresponde a un “sitio web virtual” se debe indicar el URL al que se reenviará.
     */
 
+    /**
+     * Escucha en el puerto establecido para recibir solicitudes. Al recibir una solicitud, la redirecciona al host
+     * requerido.
+     */
+    public void escuchar() throws IOException {
+        PrintWriter salida = new PrintWriter(socketCliente.getOutputStream(), true);
+        InputStream is = socketCliente.getInputStream();
+
+        InputStreamReader isReader = new InputStreamReader(is);
+        StringBuilder sb = new StringBuilder();
+        //Leer cada char de la entrada (es decir la solicitud)
+        do {
+            sb.append((char)is.read());
+        } while (is.available() > 0);
+        String solicitud = sb.toString();
+        if(solicitud.startsWith("GET")) {
+            manejarGET(solicitud);
+        }
+        else if(solicitud.startsWith(("POST"))){
+            manejarPOST(solicitud);
+        }
+        else {
+            System.err.println("El tipo de solicitud no se reconoció.\nEl Proxy sólo maneja solicitudes tipo GET y POST");
+        }
+
+    }
+
     /*
-    * TODO Manejar tipo de solicitud GET.
-    *  El servidor solo se preocupa por el atributo Host que especifica el servidor web al que hay que conectarse y
-    *  enviar la solicitud desde el cliente.
-    *  En caso de ser un sitio web real, se reenvía la solicitud sin ningún problema.
-    *  En caso de ser un sitio web "virtual"
-    */
+     * TODO Manejar tipo de solicitud GET.
+     *  El servidor solo se preocupa por el atributo Host que especifica el servidor web al que hay que conectarse y
+     *  enviar la solicitud desde el cliente.
+     *  En caso de ser un sitio web real, se reenvía la solicitud sin ningún problema.
+     *  En caso de ser un sitio web "virtual", se reenvía la solicitud con el sitio web virtual que se especifica
+     */
+    /**
+     * Maneja solicitudes tipo GET. Si la solicitud corresponde a un sitio virtual, la redirecciona de acuerdo a la tabla
+     */
+    private void manejarGET(String solicitud) {
+        String[] campos = solicitud.split("\n");
+        String host;
+        boolean encontrado = false;
+        for(int i = 0; i < campos.length && !encontrado; i++) {
+            String campo = campos[i];
+            if(campo.startsWith("Host: ")) {
+                host = campo.split("Host: ")[1];
+                host = host.split("\r")[0];
+                if(virtuales.containsKey(host)) {
+                    Host nuevoValor = virtuales.get(host);
+                    campos[0] = campos[0].replace(host, nuevoValor.hostReal + "/" + nuevoValor.directorioRaiz);
+                    campos[i] = campos[i].replace(host, nuevoValor.hostReal);
+                }
+                encontrado = true;
+            }
+        }
+        //TODO realizar el log de la solicitud
+        //TODO reenviar la solicitud al host
+
+    }
 
     /*
     * TODO Manejar tipo de solicitud POST.
@@ -78,7 +123,9 @@ public class ServidorProxy {
     *  tamaño de los datos (en bytes) que conforman el cuerpo de la solicitud, esto le permite al proxy
     *  saber donde termina la solicitud.
     */
+    private void manejarPOST(String solicitud) {
 
+    }
 
     /*
     * TODO Responder al cliente. La respuesta del servidor se reenvía al cliente
@@ -87,6 +134,9 @@ public class ServidorProxy {
     *  el tamaño de la respuesta. Una vez leídos los encabezados y datos, el proxy pueden
     *  cerrar el socket con el servidor web y con el browser.
     */
+    private void responderCliente(String respuesta) {
+
+    }
 
     /*
     * TODO Manejo de sitios web virtuales. Se necesita un archivo de configuración

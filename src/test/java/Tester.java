@@ -10,6 +10,7 @@ public class Tester {
         try {
             System.out.println("Iniciando conexión");
             ServidorProxy proxy = new ServidorProxy(8095);
+            proxy.escuchar();
         } catch (IOException e) {
             e.printStackTrace();
             assert false;
