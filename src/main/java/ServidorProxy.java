@@ -1,4 +1,7 @@
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.Map;
@@ -34,13 +37,18 @@ public class ServidorProxy {
     public ServidorProxy(int puerto) throws IOException {
         this.puerto = puerto;
         socketServidor = new ServerSocket(puerto);
-
+        socketCliente = socketServidor.accept();
+        PrintWriter salida = new PrintWriter(socketCliente.getOutputStream(), true);
+        BufferedReader entrada = new BufferedReader(new InputStreamReader(socketCliente.getInputStream()));
+        String s;
+        while((s = entrada.readLine()) != null) {
+            System.out.println(s);
+        }
     }
 
     public static void main(String[] args) {
         System.out.println("El servidor está iniciando");
         //TODO El servidor debe mostrar en tiempo real las solicitudes
-
 
     }
 
@@ -56,7 +64,7 @@ public class ServidorProxy {
     *  enviar la solicitud desde el cliente.
     *  En caso de ser un sitio web real, se reenvía la solicitud sin ningún problema.
     *  En caso de ser un sitio web "virtual"
-    * */
+    */
 
     /*
     * TODO Manejar tipo de solicitud POST.
