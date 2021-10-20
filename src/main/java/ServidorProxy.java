@@ -1,7 +1,7 @@
 import java.io.*;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.util.HashMap;
+import java.net.*;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
 import java.util.Map;
 
 /**
@@ -14,15 +14,15 @@ public class ServidorProxy {
 
     /**
      * El socketServidor recibe las solicitudes del navegador, las modifica si es necesario y las
-     * envía al socketCliente.
+     * envía al socket.
      */
     private ServerSocket socketServidor;
 
     /**
-     * El socketCliente recibe las solicitudes del servidor y las envía al servidor web al que
+     * El socket recibe las solicitudes del servidor y las envía al servidor web al que
      * se le hace la solicitud.
      */
-    private Socket socketCliente;
+    private Socket socket;
 
     /**
      * La tabla virtuales contiene en su llave el nombre de un host virtual y en su valor el host
@@ -35,7 +35,7 @@ public class ServidorProxy {
     public ServidorProxy(int puerto) throws IOException {
         this.puerto = puerto;
         socketServidor = new ServerSocket(this.puerto);
-        socketCliente = socketServidor.accept();
+        socket = socketServidor.accept();
         ManejoArchivos manager = new ManejoArchivos();
         virtuales = manager.leerTablaHV();
     }
@@ -57,8 +57,8 @@ public class ServidorProxy {
      * requerido.
      */
     public void escuchar() throws IOException {
-        PrintWriter salida = new PrintWriter(socketCliente.getOutputStream(), true);
-        InputStream is = socketCliente.getInputStream();
+        PrintWriter salida = new PrintWriter(socket.getOutputStream(), true);
+        InputStream is = socket.getInputStream();
 
         InputStreamReader isReader = new InputStreamReader(is);
         StringBuilder sb = new StringBuilder();
@@ -108,7 +108,44 @@ public class ServidorProxy {
         }
         //TODO realizar el log de la solicitud
         //TODO reenviar la solicitud al host
+        reenviarSolicitud(campos[0].split(" ")[1], campos);
+    }
 
+    private void reenviarSolicitud(String pURL, String[] solicitud) {
+        // create a client
+
+        HttpURLConnection conexion;
+        try {
+
+            URL url = new URL(pURL);
+            conexion = (HttpURLConnection) url.openConnection();
+            conexion.setRequestMethod("GET");
+
+            for(int i = 1; i < solicitud.length; i++) {
+                String[] line = solicitud[i].split(": ");
+                if(line.length != 2)
+                    break;
+                String key = line[0];
+                String val = line[1];
+                val = val.replace("\r", "");
+                conexion.setRequestProperty(key, val);
+            }
+            conexion.setUseCaches(false);
+            conexion.setDoOutput(false);
+
+            int status = conexion.getResponseCode();
+            BufferedReader in = new BufferedReader(
+                    new InputStreamReader(conexion.getInputStream()));
+            String inputLine;
+            StringBuilder content = new StringBuilder();
+            while ((inputLine = in.readLine()) != null) {
+                content.append(inputLine);
+            }
+            in.close();
+            conexion.disconnect();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
     }
 
     /*
