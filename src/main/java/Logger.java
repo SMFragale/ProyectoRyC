@@ -21,12 +21,16 @@ public class Logger {
     {
         this.calendar = Calendar.getInstance();
         this.date = calendar.get(Calendar.YEAR) + "-" +(calendar.get(Calendar.MONTH)+1) + "-" +calendar.get(Calendar.DAY_OF_MONTH);
+        if(pathArchivo.endsWith(".txt"))
+        {
+            pathArchivo = pathArchivo.substring(0, pathArchivo.length()-4);
+        }
         this.pathLogger =  pathArchivo +"_"+ date + ".txt";
     }
 
     public void log(String l, tipo lt)
     {
-        String finalLog = "Log tipo "+ lt.name() + ": " + calendar.getTime().toString() + ": " + l;
+        String finalLog = "Log tipo "+ lt.name() + ": " + calendar.getTime()+ ": " + l;
         try{
             File logFile = new File(pathLogger);
             PrintWriter out = new PrintWriter(new FileWriter(logFile, true));
