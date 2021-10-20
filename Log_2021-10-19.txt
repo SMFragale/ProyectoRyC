@@ -1,0 +1,4 @@
+Log tipo GET: Tue Oct 19 18:57:43 COT 2021: Log de prueba 1
+Log tipo POST: Tue Oct 19 18:57:43 COT 2021: Log de prueba 2
+Log tipo GET: Tue Oct 19 18:57:58 COT 2021: Log de prueba 1
+Log tipo POST: Tue Oct 19 18:57:58 COT 2021: Log de prueba 2
