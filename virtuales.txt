@@ -1,4 +1,4 @@
-HostV4,HostR4,Dir4
+e.ruiz,sophia.javeriana.edu.co,~eruiz
 HostV3,HostR3,Dir3
 HostV2,HostR2,Dir2
 HostV1,HostR1,Dir1

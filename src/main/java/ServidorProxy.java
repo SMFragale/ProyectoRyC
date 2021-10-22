@@ -1,7 +1,8 @@
+import rawhttp.core.*;
+import rawhttp.core.client.TcpRawHttpClient;
+
 import java.io.*;
 import java.net.*;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
 import java.util.Map;
 
 /**
@@ -13,37 +14,28 @@ import java.util.Map;
 public class ServidorProxy {
 
     /**
-     * El socketServidor recibe las solicitudes del navegador, las modifica si es necesario y las
-     * envía al socket.
-     */
-    private ServerSocket socketServidor;
-
-    /**
-     * El socket recibe las solicitudes del servidor y las envía al servidor web al que
-     * se le hace la solicitud.
-     */
-    private Socket socket;
-
-    /**
      * La tabla virtuales contiene en su llave el nombre de un host virtual y en su valor el host
      * real. Esta tabla se carga desde un archivo de configuración llamado virtuales.txt
      */
     private Map<String, Host> virtuales;
 
-    private int puerto;
+    private final int puerto;
+
+    private final RawHttp http;
 
     public ServidorProxy(int puerto) throws IOException {
         this.puerto = puerto;
-        socketServidor = new ServerSocket(this.puerto);
-        socket = socketServidor.accept();
         ManejoArchivos manager = new ManejoArchivos();
         virtuales = manager.leerTablaHV();
+        http = new RawHttp();
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         System.out.println("El servidor está iniciando");
         //TODO El servidor debe mostrar en tiempo real las solicitudes
+        ServidorProxy proxy = new ServidorProxy(8095);
 
+        proxy.escuchar();
     }
 
     /*
@@ -57,122 +49,67 @@ public class ServidorProxy {
      * requerido.
      */
     public void escuchar() throws IOException {
-        PrintWriter salida = new PrintWriter(socket.getOutputStream(), true);
-        InputStream is = socket.getInputStream();
+        ServerSocket servidor = new ServerSocket(this.puerto);
+        Socket cliente;
+        while(true) {
+            cliente = servidor.accept();
+            try {
+                RawHttpRequest request = http.parseRequest(cliente.getInputStream()).eagerly();
 
-        InputStreamReader isReader = new InputStreamReader(is);
-        StringBuilder sb = new StringBuilder();
-        //Leer cada char de la entrada (es decir la solicitud)
-        do {
-            sb.append((char)is.read());
-        } while (is.available() > 0);
-        String solicitud = sb.toString();
-        if(solicitud.startsWith("GET")) {
-            manejarGET(solicitud);
-        }
-        else if(solicitud.startsWith(("POST"))){
-            manejarPOST(solicitud);
-        }
-        else {
-            System.err.println("El tipo de solicitud no se reconoció.\nEl Proxy sólo maneja solicitudes tipo GET y POST");
-        }
-
-    }
-
-    /*
-     * TODO Manejar tipo de solicitud GET.
-     *  El servidor solo se preocupa por el atributo Host que especifica el servidor web al que hay que conectarse y
-     *  enviar la solicitud desde el cliente.
-     *  En caso de ser un sitio web real, se reenvía la solicitud sin ningún problema.
-     *  En caso de ser un sitio web "virtual", se reenvía la solicitud con el sitio web virtual que se especifica
-     */
-    /**
-     * Maneja solicitudes tipo GET. Si la solicitud corresponde a un sitio virtual, la redirecciona de acuerdo a la tabla
-     */
-    private void manejarGET(String solicitud) {
-        String[] campos = solicitud.split("\n");
-        String host;
-        boolean encontrado = false;
-        for(int i = 0; i < campos.length && !encontrado; i++) {
-            String campo = campos[i];
-            if(campo.startsWith("Host: ")) {
-                host = campo.split("Host: ")[1];
-                host = host.split("\r")[0];
-                if(virtuales.containsKey(host)) {
-                    Host nuevoValor = virtuales.get(host);
-                    campos[0] = campos[0].replace(host, nuevoValor.hostReal + "/" + nuevoValor.directorioRaiz);
-                    campos[i] = campos[i].replace(host, nuevoValor.hostReal);
+                String linea1 = request.getStartLine().toString();
+                String host = request.getUri().getHost();
+                if(linea1.startsWith("GET")) {
+                    System.out.println("Se recibió una solicitud GET: " + linea1);
+                    if(virtuales.containsKey(host)) {
+                        modificarSolicitud(host, request);
+                    }
                 }
-                encontrado = true;
+                else if(linea1.startsWith("POST")) {
+                    System.out.println("Se recibió una solicitud POST");
+                    if(virtuales.containsKey(host)) {
+                        modificarSolicitud(host, request);
+                    }
+                }
+                else if(linea1.startsWith("CONNECT")){
+                    System.out.println("Se recibió una solicitud CONNECT: " + linea1);
+                }
+                else {
+                    System.out.println("Se recibió una solicitud no soportada: " + linea1);
+                    continue;
+                }
+                TcpRawHttpClient clienteRaw = new TcpRawHttpClient();
+                EagerHttpResponse<?> respuesta = clienteRaw.send(request).eagerly();
+                respuesta.writeTo(cliente.getOutputStream());
+            } catch (Exception e) {
+                System.err.println(e.getMessage());
+            } finally {
+                cliente.close();
             }
         }
-        //TODO realizar el log de la solicitud
-        //TODO reenviar la solicitud al host
-        reenviarSolicitud(campos[0].split(" ")[1], campos);
     }
 
-    private void reenviarSolicitud(String pURL, String[] solicitud) {
-        // create a client
-
-        HttpURLConnection conexion;
-        try {
-
-            URL url = new URL(pURL);
-            conexion = (HttpURLConnection) url.openConnection();
-            conexion.setRequestMethod("GET");
-
-            for(int i = 1; i < solicitud.length; i++) {
-                String[] line = solicitud[i].split(": ");
-                if(line.length != 2)
-                    break;
-                String key = line[0];
-                String val = line[1];
-                val = val.replace("\r", "");
-                conexion.setRequestProperty(key, val);
+    /**
+     * En el caso que el host de una solicitud se encuentre en la tabla de sitios web virtuales, la solicitud es
+     * modificada para apuntar hacia el host real que debe recibir la solicitud.
+     */
+    public RawHttpRequest modificarSolicitud(String host, RawHttpRequest request) {
+        Host nuevoHost = virtuales.get(host); //TODO Modificar el host
+        String hostModificado = nuevoHost.getHostReal() + "/" + nuevoHost.getDirectorioRaiz();
+        String req = request.toString();
+        String[] headers = req.split("\r");
+        for(int i = 0; i < headers.length; i++) {
+            String linea = headers[i];
+            if(linea.startsWith("\nHost") || linea.startsWith("Host")) {
+                headers[i] = linea.replace(host, nuevoHost.getHostReal());
+                String[] sentenciaGet = headers[0].split(" ");
+                sentenciaGet[1] = "/" + nuevoHost.getDirectorioRaiz() + sentenciaGet[1];
+                headers[0] = String.join(" ", sentenciaGet);
+                break;
             }
-            conexion.setUseCaches(false);
-            conexion.setDoOutput(false);
-
-            int status = conexion.getResponseCode();
-            BufferedReader in = new BufferedReader(
-                    new InputStreamReader(conexion.getInputStream()));
-            String inputLine;
-            StringBuilder content = new StringBuilder();
-            while ((inputLine = in.readLine()) != null) {
-                content.append(inputLine);
-            }
-            in.close();
-            conexion.disconnect();
-        } catch (IOException e) {
-            e.printStackTrace();
         }
-    }
-
-    /*
-    * TODO Manejar tipo de solicitud POST.
-    *  Se utilizan por enviar datos desde el browser hacia el servidor, como formas por ejemplo
-    *  Hay varias líneas que indican encabezados en la solicitud luego una línea en blanco y finalmente
-    *  los datos que el usuario ingresó en la forma.
-    *  Estos datos deben ser enviados al servidor especificado
-    *  Al igual que con la solicitud GET el servidor proxy web debe analizar el atributo Host para
-    *  determinar el servidor web al que hay que conectarse y reenviar la solicitud. Adicionalmente, en
-    *  el caso de una solicitud POST, se debe analizar el atributo Content-length que especifica el
-    *  tamaño de los datos (en bytes) que conforman el cuerpo de la solicitud, esto le permite al proxy
-    *  saber donde termina la solicitud.
-    */
-    private void manejarPOST(String solicitud) {
-
-    }
-
-    /*
-    * TODO Responder al cliente. La respuesta del servidor se reenvía al cliente
-    *  sin ninguna modificación. El único encabezado de la respuesta a analizar
-    *  es el atributo Content-Length, que especifica el tamaño en bytes que conforma
-    *  el tamaño de la respuesta. Una vez leídos los encabezados y datos, el proxy pueden
-    *  cerrar el socket con el servidor web y con el browser.
-    */
-    private void responderCliente(String respuesta) {
-
+        req = String.join("\r", headers);
+        request = http.parseRequest(req);
+        return request;
     }
 
     /*
