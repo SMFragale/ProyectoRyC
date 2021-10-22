@@ -73,9 +73,6 @@ public class ServidorProxy {
                 }
                 else if(linea1.startsWith("CONNECT")){
                     System.out.println("Se recibió una solicitud CONNECT: " + linea1);
-                    RawHttpRequest solicitudConexion = http.parseRequest("CONNECT www.google.com:443");
-                    RawHttpResponse<?> respuesta = new TcpRawHttpClient().send(solicitudConexion);
-                    System.out.println("Respuesta para conexión: " + respuesta);
                     continue;
                 }
                 else {
