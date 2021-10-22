@@ -50,6 +50,7 @@ public class ServidorProxy {
      */
     public void escuchar() throws IOException {
         ServerSocket servidor = new ServerSocket(this.puerto);
+        ServerSocket servidorProxy = new ServerSocket(this.puerto+1);
         Socket cliente;
         while(true) {
             cliente = servidor.accept();
@@ -61,7 +62,7 @@ public class ServidorProxy {
                 if(linea1.startsWith("GET")) {
                     System.out.println("Se recibió una solicitud GET: " + linea1);
                     if(virtuales.containsKey(host)) {
-                        modificarSolicitud(host, request);
+                        request = modificarSolicitud(host, request);
                     }
                 }
                 else if(linea1.startsWith("POST")) {
@@ -72,6 +73,10 @@ public class ServidorProxy {
                 }
                 else if(linea1.startsWith("CONNECT")){
                     System.out.println("Se recibió una solicitud CONNECT: " + linea1);
+                    RawHttpRequest solicitudConexion = http.parseRequest("CONNECT www.google.com:443");
+                    RawHttpResponse<?> respuesta = new TcpRawHttpClient().send(solicitudConexion);
+                    System.out.println("Respuesta para conexión: " + respuesta);
+                    continue;
                 }
                 else {
                     System.out.println("Se recibió una solicitud no soportada: " + linea1);
@@ -81,6 +86,7 @@ public class ServidorProxy {
                 EagerHttpResponse<?> respuesta = clienteRaw.send(request).eagerly();
                 respuesta.writeTo(cliente.getOutputStream());
             } catch (Exception e) {
+                e.printStackTrace();
                 System.err.println(e.getMessage());
             } finally {
                 cliente.close();
@@ -102,8 +108,6 @@ public class ServidorProxy {
             if(linea.startsWith("\nHost") || linea.startsWith("Host")) {
                 headers[i] = linea.replace(host, nuevoHost.getHostReal());
                 String[] sentenciaGet = headers[0].split(" ");
-                sentenciaGet[1] = "/" + nuevoHost.getDirectorioRaiz() + sentenciaGet[1];
-                headers[0] = String.join(" ", sentenciaGet);
                 break;
             }
         }

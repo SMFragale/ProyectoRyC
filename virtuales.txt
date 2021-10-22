@@ -1,4 +1,4 @@
 e.ruiz,sophia.javeriana.edu.co,~eruiz
-HostV3,HostR3,Dir3
+e.ruiz,openjdk.java.net,/
 HostV2,HostR2,Dir2
 HostV1,HostR1,Dir1
