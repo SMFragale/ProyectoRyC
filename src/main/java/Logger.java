@@ -10,9 +10,10 @@ public class Logger {
     Calendar calendar;
     String pathLogger;
     String date;
-    public enum tipo {
-        GET,
-        POST
+    public enum Tipo {
+        SR,
+        WARNING,
+        ERROR
     }
     /**
     @param pathArchivo path y nombre del archivo en el que se guardará el log. No debe tener la extensión .txt.
@@ -20,17 +21,17 @@ public class Logger {
     public Logger(String pathArchivo)
     {
         this.calendar = Calendar.getInstance();
-        this.date = calendar.get(Calendar.YEAR) + "-" +(calendar.get(Calendar.MONTH)+1) + "-" +calendar.get(Calendar.DAY_OF_MONTH);
+        this.date = calendar.get(Calendar.DAY_OF_MONTH) + "-" +(calendar.get(Calendar.MONTH)+1) + "-" +calendar.get(Calendar.YEAR);
         if(pathArchivo.endsWith(".txt"))
         {
             pathArchivo = pathArchivo.substring(0, pathArchivo.length()-4);
         }
-        this.pathLogger =  pathArchivo +"_"+ date + ".txt";
+        this.pathLogger =  pathArchivo +"Logs_"+ date + ".txt";
     }
 
-    public void log(String l, tipo lt)
+    public void log(String linea, Tipo tipo)
     {
-        String finalLog = "Log tipo "+ lt.name() + ": " + calendar.getTime()+ ": " + l;
+        String finalLog = (tipo.name() == "SR" ? "SOLICITUD RECIBIDA" : tipo.name()) + ": " + calendar.getTime()+ ":\n" + linea;
         try{
             File logFile = new File(pathLogger);
             PrintWriter out = new PrintWriter(new FileWriter(logFile, true));

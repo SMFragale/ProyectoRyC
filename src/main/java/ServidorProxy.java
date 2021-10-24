@@ -49,6 +49,7 @@ public class ServidorProxy {
      * requerido.
      */
     public void escuchar() throws IOException {
+        Logger logger = new Logger("./");
         ServerSocket servidor = new ServerSocket(this.puerto);
         ServerSocket servidorProxy = new ServerSocket(this.puerto+1);
         Socket cliente;
@@ -60,31 +61,31 @@ public class ServidorProxy {
                 String linea1 = request.getStartLine().toString();
                 String host = request.getUri().getHost();
                 if(linea1.startsWith("GET")) {
-                    System.out.println("Se recibió una solicitud GET: " + linea1);
+                    logger.log(request.toString(), Logger.Tipo.SR);
                     if(virtuales.containsKey(host)) {
                         request = modificarSolicitud(host, request);
                     }
                 }
                 else if(linea1.startsWith("POST")) {
-                    System.out.println("Se recibió una solicitud POST");
+                    logger.log(request.toString(), Logger.Tipo.SR);
                     if(virtuales.containsKey(host)) {
                         modificarSolicitud(host, request);
                     }
                 }
                 else if(linea1.startsWith("CONNECT")){
-                    System.out.println("Se recibió una solicitud CONNECT: " + linea1);
+                    logger.log(request.toString(), Logger.Tipo.SR);
                     continue;
                 }
                 else {
-                    System.out.println("Se recibió una solicitud no soportada: " + linea1);
+                    logger.log("Solicitud no soportada: "+request.toString(), Logger.Tipo.WARNING);
                     continue;
                 }
                 TcpRawHttpClient clienteRaw = new TcpRawHttpClient();
                 EagerHttpResponse<?> respuesta = clienteRaw.send(request).eagerly();
                 respuesta.writeTo(cliente.getOutputStream());
             } catch (Exception e) {
+                logger.log(e.getMessage(), Logger.Tipo.ERROR);
                 e.printStackTrace();
-                System.err.println(e.getMessage());
             } finally {
                 cliente.close();
             }
