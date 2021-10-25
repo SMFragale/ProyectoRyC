@@ -71,12 +71,8 @@ public class ServidorProxy {
                         modificarSolicitud(host, request);
                     }
                 }
-                else if(linea1.startsWith("CONNECT")){
-                    logger.log(request.toString(), Logger.Tipo.SR);
-                    continue;
-                }
                 else {
-                    logger.log("Solicitud no soportada: "+request, Logger.Tipo.WARNING);
+                    logger.log("Solicitud no soportada: " + request, Logger.Tipo.WARNING);
                     continue;
                 }
                 TcpRawHttpClient clienteRaw = new TcpRawHttpClient();
