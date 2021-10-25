@@ -17,13 +17,20 @@ public class ServidorProxy {
      * La tabla virtuales contiene en su llave el nombre de un host virtual y en su valor el host
      * real. Esta tabla se carga desde un archivo de configuración llamado virtuales.txt
      */
-    private Map<String, Host> virtuales;
+    private final Map<String, Host> virtuales;
 
+    /**
+     * Hace referencia al puerto por el cual se establece la comunicación con el navegador o cliente.
+     */
     private final int puerto;
 
+    /**
+     * Este objeto es un auxiliar de la API RawHTTP que contiene varios métodos útiles para el manejo de HTTP.
+     * Entre ellos está el método parseHttp() que permite convertir un String en un mensaje HTTP encapsulado.
+     */
     private final RawHttp http;
 
-    public ServidorProxy(int puerto) throws IOException {
+    public ServidorProxy(int puerto) {
         this.puerto = puerto;
         ManejoArchivos manager = new ManejoArchivos();
         virtuales = manager.leerTablaHV();
@@ -32,17 +39,10 @@ public class ServidorProxy {
 
     public static void main(String[] args) throws IOException {
         System.out.println("El servidor está iniciando");
-        //TODO El servidor debe mostrar en tiempo real las solicitudes
         ServidorProxy proxy = new ServidorProxy(8095);
 
         proxy.escuchar();
     }
-
-    /*
-    * TODO El servidor debe mantener un log con las solicitudes en un archivo de texto.
-    *  Este log debe tener los campos más importantes del mensaje y el tratamiento que se le da.
-    *   por ejemplo si la solicitud corresponde a un “sitio web virtual” se debe indicar el URL al que se reenviará.
-    */
 
     /**
      * Escucha en el puerto establecido para recibir solicitudes. Al recibir una solicitud, la redirecciona al host
@@ -51,7 +51,6 @@ public class ServidorProxy {
     public void escuchar() throws IOException {
         Logger logger = new Logger("./");
         ServerSocket servidor = new ServerSocket(this.puerto);
-        ServerSocket servidorProxy = new ServerSocket(this.puerto+1);
         Socket cliente;
         while(true) {
             cliente = servidor.accept();
@@ -77,7 +76,7 @@ public class ServidorProxy {
                     continue;
                 }
                 else {
-                    logger.log("Solicitud no soportada: "+request.toString(), Logger.Tipo.WARNING);
+                    logger.log("Solicitud no soportada: "+request, Logger.Tipo.WARNING);
                     continue;
                 }
                 TcpRawHttpClient clienteRaw = new TcpRawHttpClient();
@@ -114,18 +113,5 @@ public class ServidorProxy {
         return request;
     }
 
-    /*
-    * TODO Manejo de sitios web virtuales. Se necesita un archivo de configuración
-    *  en el que se asocie un nombre de host con el host real donde se encuentra y el
-    *  directorio debase de ese host.
-    *  Cuando se recibe una solicitud (GET o POST) se debe verificar el host solicitado (especificado en
-    *  el encabezado Host) y compararlo con los nombres de host virtuales configurados.
-    *  Si el host especificado es un host virtual se deben hacer las siguientes modificaciones a la
-    *  solicitud antes de enviarla:
-    *    1. Modificar el URL solicitado: Se debe cambiar la primera línea de la solicitud cambiando
-    *    el host del URL por el host real y el directorio raíz que se configuraron.
-    *    2. Modificar el encabezado Host: Se debe cambiar la línea correspondiente al encabezado
-    *    Host por una que contenga el nombre del host real.
-    */
 
 }

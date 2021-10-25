@@ -1,17 +1,14 @@
 
 import java.io.*;
 import java.util.HashMap;
-import java.util.Map;
 import java.util.Set;
 
+/**
+ * La clase de ManejoArchivo permite leer del archivo que contiene la tabla de los sitios web virtuales.
+ */
 public class ManejoArchivos {
 
     String pathArchivoHV = "./virtuales.txt";
-
-    public ManejoArchivos()
-    {
-
-    }
 
     public String getPathArchivoHV() {
         return pathArchivoHV;
@@ -35,7 +32,7 @@ public class ManejoArchivos {
                 String linea;
                 while((linea = br.readLine())!=null)
                 {
-                    if(linea != "")
+                    if(!linea.equals(""))
                     {
                         String[] info = linea.split(",");
                         mapHV.put(info[0], new Host(info[1], info[2]));
@@ -67,14 +64,13 @@ public class ManejoArchivos {
             FileWriter writer = new FileWriter(pathArchivoHV);
             for(String o : keys)
             {
-                String hostV = o;
-                Host host = mapHV.get(hostV);
-                writer.write(hostV +","+ host.getHostReal() +","+ host.getDirectorioRaiz() + "\n");
+                Host host = mapHV.get(o);
+                writer.write(o +","+ host.getHostReal() +","+ host.getDirectorioRaiz() + "\n");
             }
             writer.close();
-            System.out.println("Tabla de Hosts Virtuales guardada con écito");
+            System.out.println("Tabla de Hosts Virtuales guardada con éxito");
         } catch (IOException e) {
-            System.out.println("Ocurrió un error en la escritura del archvio: " + pathArchivoHV);
+            System.out.println("Ocurrió un error en la escritura del archivo: " + pathArchivoHV);
             e.printStackTrace();
         }
 
