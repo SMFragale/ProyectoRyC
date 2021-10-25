@@ -31,6 +31,7 @@ public class Logger {
 
     public void log(String linea, Tipo tipo)
     {
+        calendar = Calendar.getInstance();
         String finalLog = (tipo.name() == "SR" ? "SOLICITUD RECIBIDA" : tipo.name()) + ": " + calendar.getTime()+ ":\n" + linea;
         try{
             File logFile = new File(pathLogger);
