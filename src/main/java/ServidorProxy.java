@@ -97,14 +97,12 @@ public class ServidorProxy {
      */
     public RawHttpRequest modificarSolicitud(String host, RawHttpRequest request) {
         Host nuevoHost = virtuales.get(host); //TODO Modificar el host
-        String hostModificado = nuevoHost.getHostReal() + "/" + nuevoHost.getDirectorioRaiz();
         String req = request.toString();
         String[] headers = req.split("\r");
         for(int i = 0; i < headers.length; i++) {
             String linea = headers[i];
             if(linea.startsWith("\nHost") || linea.startsWith("Host")) {
                 headers[i] = linea.replace(host, nuevoHost.getHostReal());
-                String[] sentenciaGet = headers[0].split(" ");
                 break;
             }
         }

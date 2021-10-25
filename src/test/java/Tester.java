@@ -24,7 +24,7 @@ public class Tester {
 
 
     @Test
-    public void probarHttp() throws IOException, InterruptedException {
+    public void probarHttp() throws IOException {
         ServidorProxy proxy = new ServidorProxy(8095);
         proxy.escuchar();
     }
